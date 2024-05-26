@@ -53,10 +53,7 @@ impl UntypedVTable {
     }
 
     /// Creates a new vtable of type `T`
-    pub(crate) const fn new<T: ComponentValue>(
-        name: &'static str,
-        meta: LazyComponentBuffer,
-    ) -> Self {
+    pub const fn new<T: ComponentValue>(name: &'static str, meta: LazyComponentBuffer) -> Self {
         unsafe fn drop_ptr<T>(x: *mut u8) {
             x.cast::<T>().drop_in_place()
         }
