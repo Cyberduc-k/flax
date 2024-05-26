@@ -72,7 +72,9 @@ impl UntypedVTable {
         }
     }
 
-    pub(crate) fn downcast<T: ComponentValue>(&self) -> &ComponentVTable<T> {
+    /// Downcast to a [`ComponentVTable`] for `T`.
+    pub fn downcast<T: ComponentValue>(&self) -> &ComponentVTable<T> {
+        assert!(self.is::<T>());
         unsafe { mem::transmute(self) }
     }
 }

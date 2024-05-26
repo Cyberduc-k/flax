@@ -149,9 +149,9 @@ macro_rules! component {
     };
 
     // Generic Component
-    ($(#[$outer:meta])* $vis: vis $name: ident <$($generic: ident),*>: $ty: ty $(=> [$($metadata: ty),*])?, $($rest:tt)*) => {
+    ($(#[$outer:meta])* $vis: vis $name: ident <$($generic: ident $(: $bound:path)?),*>: $ty: ty $(=> [$($metadata: ty),*])?, $($rest:tt)*) => {
         $(#[$outer])*
-        $vis fn $name<$($generic),*>() -> $crate::Component<$ty>
+        $vis fn $name<$($generic $(: $bound)?),*>() -> $crate::Component<$ty>
         where
             $($generic: $crate::component::ComponentValue,)*
         {
@@ -162,7 +162,7 @@ macro_rules! component {
                 vtable: $crate::vtable::UntypedVTable,
             }
 
-            fn meta<$($generic),*>(_desc: $crate::component::ComponentDesc) -> $crate::buffer::ComponentBuffer
+            fn meta<$($generic $(: $bound)?),*>(_desc: $crate::component::ComponentDesc) -> $crate::buffer::ComponentBuffer
             where
                 $($generic: $crate::component::ComponentValue,)*
             {
