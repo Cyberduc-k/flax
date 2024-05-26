@@ -71,6 +71,10 @@ impl UntypedVTable {
             dangling: || NonNull::<T>::dangling().cast(),
         }
     }
+
+    pub(crate) fn downcast<T: ComponentValue>(&self) -> &ComponentVTable<T> {
+        unsafe { mem::transmute(self) }
+    }
 }
 
 /// Represents a strongly typed vtable

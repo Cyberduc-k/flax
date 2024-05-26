@@ -13,6 +13,9 @@
 ///     // component
 ///     pub name: type, // component
 ///
+///     // generic component
+///     pub name<T>: type<T>,
+///
 ///     // component with metadata/reflection
 ///     pub(crate) name: type => [ Metadata, ... ],
 ///
@@ -122,8 +125,6 @@ macro_rules! component {
 
     // Component
     ($(#[$outer:meta])* $vis: vis $name: ident: $ty: ty $(=> [$($metadata: ty),*])?, $($rest:tt)*) => {
-
-
         $(#[$outer])*
         $vis fn $name() -> $crate::Component<$ty> {
             use $crate::entity::EntityKind;
@@ -142,6 +143,46 @@ macro_rules! component {
         $vis fn $name() -> $crate::Entity {
         static ENTITY_ID: ::core::sync::atomic::AtomicU32 = ::core::sync::atomic::AtomicU32::new($crate::entity::EntityIndex::MAX);
             $crate::Entity::static_init(&ENTITY_ID, $crate::entity::EntityKind::empty())
+        }
+
+        $crate::component!{ $($rest)* }
+    };
+
+    // Generic Component
+    ($(#[$outer:meta])* $vis: vis $name: ident <$($generic: ident),*>: $ty: ty $(=> [$($metadata: ty),*])?, $($rest:tt)*) => {
+        $(#[$outer])*
+        $vis fn $name<$($generic),*>() -> $crate::Component<$ty>
+        where
+            $($generic: $crate::component::ComponentValue,)*
+        {
+            use $crate::entity::EntityKind;
+
+            struct PerType {
+                component_id: ::core::sync::atomic::AtomicU32,
+                vtable: $crate::vtable::UntypedVTable,
+            }
+
+            fn meta<$($generic),*>(_desc: $crate::component::ComponentDesc) -> $crate::buffer::ComponentBuffer
+            where
+                $($generic: $crate::component::ComponentValue,)*
+            {
+                let mut _buffer = $crate::buffer::ComponentBuffer::new();
+                <$crate::metadata::Name as $crate::metadata::Metadata<$ty>>::attach(_desc, &mut _buffer);
+                <$crate::Component<$ty> as $crate::metadata::Metadata<$ty>>::attach(_desc, &mut _buffer);
+                $($(<$metadata as $crate::metadata::Metadata::<$ty>>::attach(_desc, &mut _buffer);)*)*
+                _buffer
+            }
+
+            static PER_TYPE: $crate::__OnceCell<$crate::__StaticTypeMap<PerType>> = $crate::__OnceCell::new();
+            let map = PER_TYPE.get_or_init($crate::__StaticTypeMap::new);
+            let per_type = map.call_once::<($($generic,)*), _>(|| {
+                let component_id = ::core::sync::atomic::AtomicU32::new($crate::entity::EntityIndex::MAX);
+                let vtable = $crate::vtable::UntypedVTable::new::<$ty>(stringify!($name), $crate::vtable::LazyComponentBuffer::new(meta::<$($generic),*>));
+                PerType { component_id, vtable }
+            });
+
+            let vtable = per_type.vtable.downcast::<$ty>();
+            $crate::Component::static_init(&per_type.component_id, EntityKind::COMPONENT, vtable)
         }
 
         $crate::component!{ $($rest)* }

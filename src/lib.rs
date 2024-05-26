@@ -284,3 +284,8 @@ pub(crate) use vtable::ComponentVTable;
 #[doc(inline)]
 #[cfg(feature = "derive")]
 pub use flax_derive::*;
+
+#[doc(hidden)]
+pub use generic_static::StaticTypeMap as __StaticTypeMap;
+#[doc(hidden)]
+pub use once_cell::sync::OnceCell as __OnceCell;
