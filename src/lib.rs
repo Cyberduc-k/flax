@@ -289,3 +289,11 @@ pub use flax_derive::*;
 pub use generic_static::StaticTypeMap as __StaticTypeMap;
 #[doc(hidden)]
 pub use once_cell::sync::OnceCell as __OnceCell;
+
+#[doc(hidden)]
+pub fn hash<T: ::core::hash::Hash>(v: T) -> u64 {
+    use ::core::hash::Hasher;
+    let mut state = ::std::hash::DefaultHasher::new();
+    v.hash(&mut state);
+    state.finish()
+}
