@@ -64,6 +64,14 @@ pub trait SystemAccess {
     fn access(&self, world: &World, dst: &mut Vec<Access>);
 }
 
+impl<T: SystemAccess> SystemAccess for Option<T> {
+    fn access(&self, world: &World, dst: &mut Vec<Access>) {
+        if let Some(s) = self {
+            s.access(world, dst);
+        }
+    }
+}
+
 /// A callable function
 pub trait SystemFn<'this, Args, Ret> {
     /// Execute the function
@@ -123,6 +131,7 @@ tuple_impl! { 0 => A, 1 => B, 2 => C, 3 => D, 4 => E, 5 => F }
 tuple_impl! { 0 => A, 1 => B, 2 => C, 3 => D, 4 => E, 5 => F, 6 => H }
 
 /// Access the world
+#[derive(Default)]
 pub struct WithWorld;
 
 impl<'a> SystemData<'a> for WithWorld {
@@ -148,6 +157,7 @@ impl SystemAccess for WithWorld {
 }
 
 /// Access the world mutably
+#[derive(Default)]
 pub struct WithWorldMut;
 
 impl<'a> SystemData<'a> for WithWorldMut {
@@ -173,6 +183,7 @@ impl SystemAccess for WithWorldMut {
 }
 
 /// Access the command buffer
+#[derive(Default)]
 pub struct WithCmd;
 
 impl<'a> SystemData<'a> for WithCmd {
@@ -197,6 +208,7 @@ impl SystemAccess for WithCmd {
 }
 
 /// Access the command buffer mutably
+#[derive(Default)]
 pub struct WithCmdMut;
 
 impl<'a> SystemData<'a> for WithCmdMut {

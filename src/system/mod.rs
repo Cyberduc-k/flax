@@ -1,5 +1,6 @@
 mod context;
 mod input;
+mod into;
 mod traits;
 
 use crate::{
@@ -24,6 +25,7 @@ use core::{
 
 pub use context::*;
 pub use input::IntoInput;
+pub use into::{InitState, IntoSystem, SystemParam, SystemParamAccess};
 pub use traits::{AsBorrowed, SystemAccess, SystemData, SystemFn};
 
 use self::traits::{WithCmd, WithCmdMut, WithInput, WithInputMut, WithWorld, WithWorldMut};

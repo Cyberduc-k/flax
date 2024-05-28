@@ -3,8 +3,8 @@ use atomic_refcell::AtomicRef;
 
 use crate::{
     filter::All,
-    system::{Access, AsBorrowed, SystemAccess, SystemContext, SystemData},
-    Fetch, Planar, Query, World,
+    system::{Access, AsBorrowed, InitState, SystemAccess, SystemContext, SystemData, SystemParam},
+    Fetch, Planar, Query, QueryBorrow, World,
 };
 
 use super::QueryStrategy;
@@ -51,6 +51,37 @@ where
         self.fetch.describe(f)?;
         f.write_str(", ")?;
         f.write_str(&tynm::type_name::<S>())?;
+        f.write_str(">")
+    }
+}
+
+impl<'w, Q, F> SystemParam for QueryBorrow<'w, Q, F>
+where
+    Q: for<'a> Fetch<'a> + Clone + 'static,
+    F: for<'a> Fetch<'a> + Clone + 'static,
+{
+    type Value<'a> = QueryData<'a, Q, F, Planar>;
+    type State = Query<Q, F, Planar>;
+
+    fn init_state(state: &mut Self::State, ctx: &InitState<'_, '_>) {
+        let query = ctx.input::<Self::State>().expect("query not set");
+        *state = query.clone();
+    }
+
+    fn acquire<'a>(
+        state: &'a mut Self::State,
+        ctx: &'a SystemContext<'_, '_, '_>,
+    ) -> Self::Value<'a> {
+        let world = ctx.world();
+        QueryData {
+            world,
+            query: state,
+        }
+    }
+
+    fn describe(state: &Self::State, f: &mut alloc::fmt::Formatter<'_>) -> alloc::fmt::Result {
+        f.write_str("QueryBorrow<")?;
+        state.fetch.describe(f)?;
         f.write_str(">")
     }
 }
