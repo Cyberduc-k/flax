@@ -291,7 +291,7 @@ pub use generic_static::StaticTypeMap as __StaticTypeMap;
 pub use once_cell::sync::OnceCell as __OnceCell;
 
 #[doc(hidden)]
-pub fn hash<T: ::core::hash::Hash>(v: T) -> u64 {
+pub fn __hash<T: ::core::hash::Hash>(v: T) -> u64 {
     use ::core::hash::Hasher;
     let mut state = ::std::hash::DefaultHasher::new();
     v.hash(&mut state);

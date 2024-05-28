@@ -223,8 +223,9 @@ macro_rules! component {
             });
 
             let vtable = per_type.vtable.downcast::<$ty>();
+            let hash = $crate::__hash(($($up,)*));
             let mut component_id = per_type.component_id.write().unwrap();
-            let component_id = component_id.entry(0).or_insert_with(|| {
+            let component_id = component_id.entry(hash).or_insert_with(|| {
                 ::core::sync::atomic::AtomicU32::new($crate::entity::EntityIndex::MAX)
             });
             $crate::Component::static_init(component_id, EntityKind::COMPONENT, vtable)
