@@ -3,7 +3,9 @@ use atomic_refcell::AtomicRef;
 
 use crate::{
     filter::All,
-    system::{Access, AsBorrowed, InitState, SystemAccess, SystemContext, SystemData, SystemParam},
+    system::{
+        Access, AsBorrowed, InitStateContext, SystemAccess, SystemContext, SystemData, SystemParam,
+    },
     Fetch, Planar, Query, QueryBorrow, World,
 };
 
@@ -63,9 +65,9 @@ where
     type Value<'a> = QueryData<'a, Q, F, Planar>;
     type State = Query<Q, F, Planar>;
 
-    fn init_state(state: &mut Self::State, ctx: &InitState<'_, '_>) {
+    fn init_state(ctx: &InitStateContext<'_, '_>) -> Self::State {
         let query = ctx.input::<Self::State>().expect("query not set");
-        *state = query.clone();
+        query.clone()
     }
 
     fn acquire<'a>(

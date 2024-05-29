@@ -79,6 +79,7 @@ where
     }
 }
 
+#[allow(dead_code)]
 struct BatchesWithId<'q, Q: PreparedFetch<'q>, F> {
     chunks: ArchetypeChunks<'q, Q, F>,
     // The current batch

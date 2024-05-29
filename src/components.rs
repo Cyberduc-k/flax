@@ -29,4 +29,7 @@ component! {
 
     /// Added automatically to all STATIC entities
     pub is_static: () => [ Debuggable ],
+
+    /// Globally avaiable resources
+    pub resources,
 }

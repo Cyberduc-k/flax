@@ -25,7 +25,7 @@ use core::{
 
 pub use context::*;
 pub use input::IntoInput;
-pub use into::{InitState, IntoSystem, SystemParam, SystemParamAccess};
+pub use into::{InitStateContext, IntoSystem, IntoSystemExt, SystemParam};
 pub use traits::{AsBorrowed, SystemAccess, SystemData, SystemFn};
 
 use self::traits::{WithCmd, WithCmdMut, WithInput, WithInputMut, WithWorld, WithWorldMut};
@@ -304,6 +304,7 @@ pub struct System<F, Args, Ret> {
     _marker: PhantomData<Ret>,
 }
 
+#[allow(dead_code)]
 struct FormatWith<F> {
     func: F,
 }

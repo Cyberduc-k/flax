@@ -6,6 +6,7 @@ mod entity;
 mod iter;
 mod one;
 mod planar;
+mod resource;
 mod searcher;
 mod topo;
 mod walk;
@@ -34,6 +35,7 @@ pub use entity::EntityBorrow;
 pub(crate) use iter::*;
 pub use one::QueryOne;
 pub use planar::*;
+pub use resource::ResourceBorrow;
 pub use searcher::ArchetypeSearcher;
 pub use topo::{Topo, TopoBorrow, TopoIter};
 

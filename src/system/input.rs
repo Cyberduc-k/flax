@@ -2,6 +2,8 @@ use core::{any::TypeId, ptr::NonNull};
 
 use atomic_refcell::AtomicRefCell;
 
+use crate::Query;
+
 /// Extract a reference from a [`AtomicRefCell`]
 /// # Safety
 ///
@@ -24,6 +26,11 @@ pub trait IntoInput<'a> {
     fn into_input(self) -> Self::Output;
 }
 
+impl<'a> IntoInput<'a> for () {
+    type Output = ();
+    fn into_input(self) -> Self::Output {}
+}
+
 unsafe impl<'a, 'b> ExtractDyn<'a, 'b> for () {
     unsafe fn extract_dyn(&'a self, _: TypeId) -> Option<&'a AtomicRefCell<NonNull<()>>> {
         None
@@ -44,21 +51,55 @@ unsafe impl<'a, 'b, T: 'static + Send + Sync> ExtractDyn<'a, 'b> for ErasedCell<
 impl<'a, T: 'static + Send + Sync> IntoInput<'a> for &'a mut T {
     type Output = ErasedCell<'a, T>;
     fn into_input(self) -> Self::Output {
+        unsafe { ErasedCell::new_ref(self) }
+    }
+}
+
+impl<'a, Q, F, S> IntoInput<'a> for Query<Q, F, S>
+where
+    Q: 'static + Sync + Send,
+    F: 'static + Sync + Send,
+    S: 'static + Sync + Send,
+{
+    type Output = ErasedCell<'a, Query<Q, F, S>>;
+    fn into_input(self) -> Self::Output {
         unsafe { ErasedCell::new(self) }
     }
 }
 
 pub struct ErasedCell<'a, T: ?Sized> {
     cell: AtomicRefCell<NonNull<()>>,
+    drop_fn: fn(NonNull<()>),
     _marker: core::marker::PhantomData<&'a mut T>,
 }
 
 impl<'a, T: ?Sized> ErasedCell<'a, T> {
-    unsafe fn new(value: &'a mut T) -> Self {
+    unsafe fn new_ref(value: &'a mut T) -> Self {
         Self {
             cell: AtomicRefCell::new(NonNull::from(value).cast::<()>()),
+            drop_fn: |_| {},
             _marker: core::marker::PhantomData,
         }
+    }
+}
+
+impl<'a, T: 'static> ErasedCell<'a, T> {
+    unsafe fn new(value: T) -> Self {
+        let boxed = Box::leak(Box::new(value));
+        let drop_fn = |ptr: NonNull<()>| {
+            ptr.cast::<T>().drop_in_place();
+        };
+        Self {
+            cell: AtomicRefCell::new(NonNull::from(boxed).cast::<()>()),
+            drop_fn,
+            _marker: core::marker::PhantomData,
+        }
+    }
+}
+
+impl<'a, T: ?Sized> Drop for ErasedCell<'a, T> {
+    fn drop(&mut self) {
+        (self.drop_fn)(*self.cell.borrow())
     }
 }
 
@@ -67,19 +108,25 @@ unsafe impl<'a, T: ?Sized> Sync for ErasedCell<'a, T> where T: Sync {}
 
 macro_rules! tuple_impl {
     ($($idx: tt => $ty: ident),*) => {
-        impl<'a, $($ty: ?Sized + 'static + Send + Sync,)*> IntoInput<'a> for ($(&'a mut $ty,)*) {
-            type Output = ($(ErasedCell<'a, $ty>,)*);
+        impl<'a, $($ty),*> IntoInput<'a> for ($($ty,)*)
+        where
+            $($ty: IntoInput<'a>,)*
+        {
+            type Output = ($($ty::Output,)*);
 
             fn into_input(self) -> Self::Output {
-                unsafe { ($(ErasedCell::new(self.$idx),)*) }
+                ($($ty::into_input(self.$idx),)*)
             }
         }
 
-        unsafe impl<'a, 'b, $($ty: ?Sized + 'static + Send + Sync,)*> ExtractDyn<'a , 'b> for ($(ErasedCell<'b, $ty>,)*) {
-            unsafe fn extract_dyn(&'a self, ty: TypeId) -> Option<&'a AtomicRefCell<NonNull<()>>>  {
+        unsafe impl<'a, 'b, $($ty),*> ExtractDyn<'a, 'b> for ($($ty,)*)
+        where
+            $($ty: ExtractDyn<'a, 'b>,)*
+        {
+            unsafe fn extract_dyn(&'a self, ty: TypeId) -> Option<&'a AtomicRefCell<NonNull<()>>> {
                 $(
-                    if TypeId::of::<$ty>() == ty {
-                        Some(&self.$idx.cell)
+                    if let Some(v) = self.$idx.extract_dyn(ty) {
+                        Some(v)
                     } else
                 )*
                 {
@@ -105,7 +152,7 @@ mod tests {
     fn extract_2() {
         let mut a = String::from("Foo");
         let mut b = 5_i32;
-        let values = unsafe { (ErasedCell::new(&mut a), ErasedCell::new(&mut b)) };
+        let values = unsafe { (ErasedCell::new_ref(&mut a), ErasedCell::new_ref(&mut b)) };
 
         unsafe {
             assert_eq!(
