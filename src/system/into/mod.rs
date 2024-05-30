@@ -8,9 +8,11 @@ use super::{input::ExtractDyn, DynSystem, IntoInput};
 
 mod function;
 mod input;
+mod local;
 mod param;
 
-pub use param::{Local, SystemParam};
+pub use local::Local;
+pub use param::SystemParam;
 
 /// Transform into a system.
 pub trait IntoSystem<Ret, Marker>: Sized {
