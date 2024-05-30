@@ -24,20 +24,27 @@ pub trait IntoSystem<Ret, Marker>: Sized {
 }
 
 /// Extension trait for [`IntoSystem`]
-pub trait IntoSystemExt<Ret, Marker>: IntoSystem<Ret, Marker> {
+pub trait IntoSystemExt<Input, Marker> {
+    /// The concrete system type to transform into.
+    type System: DynSystem;
+
     /// Add input to the system
-    fn with_input<I>(self, input: I) -> WithInput<Self::System, (I,)>;
+    fn with_input<I>(self, input: I) -> WithInput<Self::System, Input::PushRight>
+    where
+        Input: TuplePush<I>;
 
     /// Transform into a [`BoxedSystem`]
     fn boxed(self) -> BoxedSystem;
 }
 
-impl<T, Ret, Marker> IntoSystemExt<Ret, Marker> for T
+impl<T, Ret, Marker> IntoSystemExt<(), (Ret, Marker)> for T
 where
     T: IntoSystem<Ret, Marker>,
-    T::System: DynSystem,
+    T::System: DynSystem + Send + Sync + 'static,
 {
-    fn with_input<I>(self, input: I) -> WithInput<Self::System, (I,)> {
+    type System = T::System;
+
+    fn with_input<I>(self, input: I) -> WithInput<T::System, <() as TuplePush<I>>::PushRight> {
         WithInput {
             system: self.into_system(),
             input: (input,),
@@ -45,7 +52,7 @@ where
     }
 
     fn boxed(self) -> BoxedSystem {
-        todo!()
+        BoxedSystem::new(self.into_system())
     }
 }
 
@@ -89,9 +96,24 @@ where
     S: DynSystem + InitState,
     I: IntoInput<'a>,
 {
-    pub fn with_input<I2>(self, input: I2) -> WithInput<S, I::PushRight>
+    pub fn system(mut self) -> S {
+        let input = self.input.into_input();
+        let ctx = InitStateContext::new(&input);
+        self.system.init_state(&ctx);
+        self.system
+    }
+}
+
+impl<'a, S, Input> IntoSystemExt<Input, ()> for WithInput<S, Input>
+where
+    S: DynSystem + InitState + Send + Sync + 'static,
+    Input: IntoInput<'a>,
+{
+    type System = S;
+
+    fn with_input<I>(self, input: I) -> WithInput<Self::System, Input::PushRight>
     where
-        I: TuplePush<I2>,
+        Input: TuplePush<I>,
     {
         WithInput {
             system: self.system,
@@ -99,18 +121,8 @@ where
         }
     }
 
-    pub fn boxed(self) -> BoxedSystem
-    where
-        S: Send + Sync + 'static,
-    {
+    fn boxed(self) -> BoxedSystem {
         BoxedSystem::new(self.system())
-    }
-
-    pub fn system(mut self) -> S {
-        let input = self.input.into_input();
-        let ctx = InitStateContext::new(&input);
-        self.system.init_state(&ctx);
-        self.system
     }
 }
 
@@ -132,7 +144,7 @@ where
 mod test {
     use crate::error::Result;
     use crate::query::ResourceBorrow;
-    use crate::system::into::IntoSystemExt;
+    use crate::system::into::IntoSystemExt as _;
     use crate::{Component, Entity, Mutable, Query, QueryBorrow, World};
 
     #[test]
@@ -162,7 +174,7 @@ mod test {
 
         let mut system = regen_system
             .with_input(Query::new(health().as_mut()))
-            .system();
+            .boxed();
         system.run(&mut world).ok();
     }
 }

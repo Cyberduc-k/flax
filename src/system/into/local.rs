@@ -10,6 +10,7 @@ use crate::{
 
 use super::{InitStateContext, SystemParam};
 
+/// State local to a system.
 pub struct Local<'s, T> {
     data: &'s mut T,
 }
