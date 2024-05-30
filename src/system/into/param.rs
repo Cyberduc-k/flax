@@ -5,7 +5,7 @@ use atomic_refcell::{AtomicRef, AtomicRefMut};
 use crate::{
     system::{
         traits::{WithCmd, WithCmdMut, WithWorld, WithWorldMut},
-        AsBorrowed, SystemAccess, SystemContext,
+        Access, AsBorrowed, SystemAccess, SystemContext,
     },
     CommandBuffer, World,
 };
@@ -98,4 +98,45 @@ impl SystemParam for &mut CommandBuffer {
     fn describe(_: &Self::State, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("&mut CommandBuffer")
     }
+}
+
+pub struct Local<'s, T> {
+    data: &'s mut T,
+}
+
+pub struct LocalState<T>(T);
+
+impl<'s, T> SystemParam for Local<'s, T>
+where
+    T: Default + 'static,
+{
+    type Value<'a> = Local<'a, T>;
+    type State = LocalState<T>;
+
+    fn init_state(_: &InitStateContext<'_, '_>) -> Self::State {
+        LocalState(T::default())
+    }
+
+    fn acquire<'a>(
+        state: &'a mut Self::State,
+        _: &'a SystemContext<'_, '_, '_>,
+    ) -> Self::Value<'a> {
+        Local { data: &mut state.0 }
+    }
+
+    fn describe(_: &Self::State, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Local<{}>", tynm::type_name::<T>())
+    }
+}
+
+impl<'s, 'a, T: 'static> AsBorrowed<'a> for Local<'s, T> {
+    type Borrowed = Local<'a, T>;
+
+    fn as_borrowed(&'a mut self) -> Self::Borrowed {
+        Local { data: self.data }
+    }
+}
+
+impl<T> SystemAccess for LocalState<T> {
+    fn access(&self, _: &World, _: &mut Vec<Access>) {}
 }

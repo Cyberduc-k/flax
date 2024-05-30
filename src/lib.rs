@@ -271,11 +271,13 @@ pub use metadata::{Debuggable, Exclusive};
 
 pub use query::{
     Children, Dfs, DfsBorrow, DfsIter, EntityBorrow, EntityQuery, Planar, Query, QueryBorrow,
-    QueryIter, Topo,
+    QueryIter, ResourceBorrow, Topo,
 };
 pub use relation::RelationExt;
 pub use schedule::{Schedule, ScheduleBuilder, SystemInfo};
-pub use system::{BoxedSystem, SharedResource, System, SystemBuilder};
+pub use system::{
+    BoxedSystem, IntoSystem, IntoSystemExt, Local, SharedResource, System, SystemBuilder,
+};
 pub use world::World;
 
 pub(crate) use query::ArchetypeSearcher;

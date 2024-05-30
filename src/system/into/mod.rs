@@ -10,7 +10,7 @@ mod function;
 mod input;
 mod param;
 
-pub use param::SystemParam;
+pub use param::{Local, SystemParam};
 
 /// Transform into a system.
 pub trait IntoSystem<Ret, Marker>: Sized {

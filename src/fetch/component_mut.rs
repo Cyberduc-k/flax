@@ -12,10 +12,16 @@ use crate::{
 
 use super::{FetchAccessData, FetchPrepareData, PreparedFetch};
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 /// Mutable component fetch
 /// See [crate::Component::as_mut]
 pub struct Mutable<T>(pub(crate) Component<T>);
+
+impl<T> Clone for Mutable<T> {
+    fn clone(&self) -> Self {
+        Self(self.0)
+    }
+}
 
 impl<'w, T> Fetch<'w> for Mutable<T>
 where
