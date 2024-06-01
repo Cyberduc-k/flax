@@ -166,11 +166,10 @@ mod test {
 
         fn regen_system(
             mut q: QueryBorrow<Mutable<f32>>,
-            mut r: ResourceBorrow<Component<f32>>,
+            r: ResourceBorrow<Component<f32>>,
         ) -> Result<()> {
-            let h = r.get()?;
             q.for_each(|health| {
-                *health += *h;
+                *health += *r;
             });
             Ok(())
         }
