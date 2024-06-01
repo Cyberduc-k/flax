@@ -1,9 +1,8 @@
-use core::ops::{Deref, DerefMut};
-
 use atomic_refcell::AtomicRef;
 
 use crate::{
     components::resources,
+    error::Result,
     fetch::PreparedFetch,
     filter::All,
     system::{AsBorrowed, InitStateContext, SystemContext, SystemParam},
@@ -19,29 +18,22 @@ where
     Q: Fetch<'w>,
     F: Fetch<'w>,
 {
-    _borrow: EntityBorrow<'w, Q, F>,
-    data: <Q::Prepared as PreparedFetch<'w>>::Item,
+    borrow: EntityBorrow<'w, Q, F>,
 }
 
-impl<'w, Q, F> Deref for ResourceBorrow<'w, Q, F>
+impl<'w, Q, F> ResourceBorrow<'w, Q, F>
 where
     Q: Fetch<'w>,
     F: Fetch<'w>,
 {
-    type Target = <Q::Prepared as PreparedFetch<'w>>::Item;
-
-    fn deref(&self) -> &Self::Target {
-        &self.data
-    }
-}
-
-impl<'w, Q, F> DerefMut for ResourceBorrow<'w, Q, F>
-where
-    Q: Fetch<'w>,
-    F: Fetch<'w>,
-{
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.data
+    /// Returns the results of the fetch.
+    ///
+    /// Fails if the entity does not exist, or the fetch isn't matched.
+    pub fn get<'q>(&'q mut self) -> Result<<Q::Prepared as PreparedFetch<'q>>::Item>
+    where
+        'w: 'q,
+    {
+        self.borrow.get()
     }
 }
 
@@ -91,13 +83,8 @@ where
 {
     type Borrowed = ResourceBorrow<'a, Q, F>;
 
-    #[allow(clippy::missing_transmute_annotations)]
     fn as_borrowed(&'a mut self) -> Self::Borrowed {
-        let mut borrow = self.query.borrow(&self.world);
-        let data = unsafe { core::mem::transmute(borrow.get().unwrap()) };
-        ResourceBorrow {
-            _borrow: borrow,
-            data,
-        }
+        let borrow = self.query.borrow(&self.world);
+        ResourceBorrow { borrow }
     }
 }
