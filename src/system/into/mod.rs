@@ -40,7 +40,7 @@ pub trait IntoSystemExt<Input, Marker> {
 impl<T, Ret, Marker> IntoSystemExt<(), (Ret, Marker)> for T
 where
     T: IntoSystem<Ret, Marker>,
-    T::System: DynSystem + Send + Sync + 'static,
+    T::System: DynSystem + InitState + Send + Sync + 'static,
 {
     type System = T::System;
 
@@ -52,7 +52,10 @@ where
     }
 
     fn boxed(self) -> BoxedSystem {
-        BoxedSystem::new(self.into_system())
+        let mut system = self.into_system();
+        let ctx = InitStateContext::new(&());
+        system.init_state(&ctx);
+        BoxedSystem::new(system)
     }
 }
 
