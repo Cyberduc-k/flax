@@ -2,7 +2,7 @@ use core::{fmt, marker::PhantomData};
 
 use crate::{
     system::{Access, AsBorrowed, DynSystem, IntoInput, SystemAccess, SystemContext},
-    BoxedSystem, CommandBuffer, IntoSystemExt, World,
+    BoxedSystem, CommandBuffer, World,
 };
 
 use super::{param::SystemParam, InitState, InitStateContext, IntoSystem};
