@@ -35,7 +35,7 @@ pub use entity::EntityBorrow;
 pub(crate) use iter::*;
 pub use one::QueryOne;
 pub use planar::*;
-pub use resource::{Res, ResMut, ResourceBorrow};
+pub use resource::{Res, ResMut, Resource, ResourceBorrow};
 pub use searcher::ArchetypeSearcher;
 pub use topo::{Topo, TopoBorrow, TopoIter};
 
